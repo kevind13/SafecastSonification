@@ -1,0 +1,7 @@
+.btn {
+  border-radius: 20px;
+  padding: 10px 20px;
+  box-shadow: 0 6px 10px -5px #0000006D;
+  border: 1px solid transparent;
+  height: 40px;
+}
