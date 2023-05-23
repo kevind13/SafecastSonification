@@ -29,3 +29,5 @@ yarn-error.log*
 backend/SAE_3_Layer_7_Latent_9216_2560_512/*
 
 **/__pycache__
+
+**/.vscode
