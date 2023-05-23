@@ -1,11 +1,11 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS, cross_origin
 import numpy as np
 import torch
 import requests
 import base64
 import scipy.io as sio
 import io
-import json
 
 from mid2matrix.matrix2mid import matrix2mid
 
@@ -17,6 +17,7 @@ LATENT_DIM = 7
 DEVICES_CACHE = {}
 
 app = Flask(__name__)
+CORS(app, support_credentials=True)
 
 model = None
 all_principal_components_statistics = []
@@ -62,6 +63,7 @@ def midi_msg_formatter(msg):
         return {'type': msg.type, 'note': int(msg.note), 'time': float(msg.time), 'velocity': msg.velocity}
 
 @app.route('/predict/<float_list>')
+@cross_origin(supports_credentials=True)
 def predict_latent(float_list):
     # Convert the input string to a list of floats
     input_data = [float(value) for value in float_list.split(',')]
@@ -106,6 +108,7 @@ def predict_latent(float_list):
 
 
 @app.route('/predict', methods=['POST'])
+@cross_origin(supports_credentials=True)
 def predict():
     global current_params
     if model is None:
@@ -113,7 +116,8 @@ def predict():
     data = request.get_json()
 
     mapping = data['mapping']
-    start_date = data['from']
+    start_date = data.get('from')
+    format = data.get('format')
 
     if not isinstance(mapping, list) or any(not isinstance(item, dict) or 'component' not in item or 'device' not in item for item in mapping):
         return jsonify({'error': 'Invalid data format'})
@@ -152,7 +156,9 @@ def predict():
         temp_column_avg = DEVICES_CACHE[devices[index]]['avg']
         temp_column_std = DEVICES_CACHE[devices[index]]['std']
 
-        url = f'https://api.safecast.org/en-US/measurements?device_id={devices[index]}&format=json&since={start_date}'
+        url = f'https://api.safecast.org/en-US/measurements?device_id={devices[index]}&format=json'
+        if start_date is not None:
+            url = url + f'&since={start_date}'
 
         response = requests.get(url)
         if response.status_code == 200:
@@ -193,12 +199,21 @@ def predict():
 
     # try:
     temp_midi_events = matrix2mid(current_notes.astype(int))
+
+    if format == 'base64':
+        midi_buffer = io.BytesIO()
+        temp_midi_events.save(file=midi_buffer)
+        midi_buffer.seek(0)
+        encoded_midi = base64.b64encode(midi_buffer.read()).decode('utf-8')
+        return jsonify(encoded_midi)
+
     current_midi_events = [midi_msg_formatter(msg) for msg in temp_midi_events if midi_msg_formatter(msg) is not None]
     return jsonify(current_midi_events)
     # return f'<div><h1>Model in construction!</h1><h2>devices: {devices}</h2><h2>components: {components}</h2><h2>{DEVICES_CACHE}</h2><h2>{current_params}</h2><h2>{start_date}</h2></div>'
 
 
 @app.route('/devices/')
+@cross_origin(supports_credentials=True)
 def get_external_data():
     page = request.args.get('page', default=1, type=int)
     url = f'https://api.safecast.org/en-US/devices?format=json&order=id+asc&page={page}'
