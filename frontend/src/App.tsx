@@ -238,8 +238,8 @@ function App() {
           <div className={style.list}>
             {devices.length >= 1 && (
               <div className={style.inputTitle}>
-                <h2>Device</h2>
-                <h2>Component</h2>
+                <h2>Safecast Device</h2>
+                <h2>Principal component</h2>
               </div>
             )}
             {devices.map((device) => (

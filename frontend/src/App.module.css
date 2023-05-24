@@ -24,6 +24,11 @@
 .inputTitle > h2 {
   width: 220px;
 }
+
+.inputTitle > h2:nth-child(2) {
+  width: 240px;
+}
+
 .title > div {
   width: 90vw;
   height: 10px;
