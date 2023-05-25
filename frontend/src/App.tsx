@@ -21,7 +21,7 @@ export type Notes = {
   velocity: number;
 };
 
-let synths:  Tone.PolySynth<Tone.Synth<Tone.SynthOptions>>[] = []
+let synths: Tone.PolySynth<Tone.Synth<Tone.SynthOptions>>[] = [];
 
 function App() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -147,8 +147,8 @@ function App() {
           const arrayBuffer = convertDataToArrayBuffer(notes.data);
           const midi = new Midi(arrayBuffer);
           const now = Tone.now();
-          
-          const temp_synths = [];
+
+          const temp_synths = [] as any;
 
           while (synths.length) {
             temp_synths.push(synths.shift());
@@ -163,20 +163,21 @@ function App() {
                 release: 1,
               },
             }).toDestination();
-            
-            
+
             synths.push(synth);
 
             //schedule all of the events
             track.notes.forEach((note) => {
               synth.triggerAttackRelease(note.name, note.duration, note.time + now, note.velocity);
             });
-          });         
+          });
 
-          while (temp_synths.length) {
-            const synth = temp_synths.shift();
-            if (synth) synth.disconnect();
-          }
+          setTimeout(() => {
+            while (temp_synths.length) {
+              const synth = temp_synths.shift();
+              if (synth) synth.disconnect();
+            }
+          }, 10);
 
           setLoadingText('Playing the song');
           setNotes(notes?.data);
@@ -199,26 +200,25 @@ function App() {
       const synth = synths.shift();
       if (synth) synth.disconnect();
     }
-
   }, [sonificationInterval]);
 
   return (
     <div className={style.container}>
       <div className={style.title}>
-        <h1>SONIFICATION OF SAFECAST SENSORS</h1>
+        <h1>SONIFICATION OF SAFECAST DATA</h1>
         <div />
       </div>
       {loading && (
         <div className={style.playingSong}>
           <div className={style.loader}>
-            <h2>{loadingText}</h2>
+            {/* <h2>{loadingText}</h2> */}
             <PulseLoader color="white" loading={loading} size={30} aria-label="Loading Spinner" data-testid="loader" />
           </div>
           <Button title="Stop Sonification" className={style.add} onClick={handleStopSonification} />
-          <div className={style.notesContainer}>
+          {/* <div className={style.notesContainer}>
             <h2>Notes:</h2>
             <textarea value={JSON.stringify(notes, null, 2)} readOnly className={style.notesTextArea} />
-          </div>
+          </div> */}
         </div>
       )}
       {!loading && (
@@ -226,13 +226,10 @@ function App() {
           <div className={style.buttons}>
             {devices.length !== 7 && (
               <Button
-                title={devices.length === 0 ? 'Add a mapper' : 'Add more mappers'}
+                title={'Add a pair'}
                 className={style.add}
                 onClick={addDevice}
               />
-            )}
-            {devices.length >= 1 && (
-              <Button title="Start sonification" className={style.add} onClick={handleStartSonification} />
             )}
           </div>
           <div className={style.list}>
@@ -263,8 +260,12 @@ function App() {
                   <RiDeleteBin6Line />
                 </button>
               </div>
+              
             ))}
           </div>
+          {devices.length >= 1 && (
+              <Button title="Start sonification" className={style.add} onClick={handleStartSonification} />
+            )}
           {error && <div className={style.error}>{error}</div>}
         </div>
       )}
