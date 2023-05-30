@@ -25,12 +25,12 @@ let synths: Tone.PolySynth<Tone.Synth<Tone.SynthOptions>>[] = [];
 
 function App() {
   const [loading, setLoading] = useState<boolean>(false);
-  const [loadingText, setLoadingText] = useState<string | undefined>();
   const [devices, setDevices] = useState<Device[]>([]);
   const [error, setError] = useState<string | undefined>();
   const [notes, setNotes] = useState<Notes[] | undefined>();
+  const [date, setDate] = useState<string | undefined>();
+
   const [sonificationInterval, setSonificationInterval] = useState<NodeJS.Timeout | null>(null);
-  // const [synths, setSynths] = useState<Tone.PolySynth<Tone.Synth<Tone.SynthOptions>>[]>([]);
 
   const addDevice = () => {
     setError('');
@@ -108,11 +108,8 @@ function App() {
         setLoading(false);
         return;
       }
-      setLoadingText('Generating the song');
       setLoading(true);
-
       const notes = await startSonification(devices);
-      setLoadingText('Playing the song');
       if (!notes?.data) return;
 
       const arrayBuffer = convertDataToArrayBuffer(notes.data);
@@ -140,7 +137,6 @@ function App() {
 
       setSonificationInterval(
         setInterval(async () => {
-          setLoadingText('Generating the song');
           const notes = await startSonification(devices);
           if (!notes?.data) return;
 
@@ -179,7 +175,6 @@ function App() {
             }
           }, 10);
 
-          setLoadingText('Playing the song');
           setNotes(notes?.data);
         }, 12000),
       );
@@ -211,26 +206,38 @@ function App() {
       {loading && (
         <div className={style.playingSong}>
           <div className={style.loader}>
-            {/* <h2>{loadingText}</h2> */}
             <PulseLoader color="white" loading={loading} size={30} aria-label="Loading Spinner" data-testid="loader" />
           </div>
           <Button title="Stop Sonification" className={style.add} onClick={handleStopSonification} />
-          {/* <div className={style.notesContainer}>
-            <h2>Notes:</h2>
-            <textarea value={JSON.stringify(notes, null, 2)} readOnly className={style.notesTextArea} />
-          </div> */}
         </div>
       )}
       {!loading && (
         <div className={style.content}>
+          <section>
+            <h2>Instructions:</h2>
+            <p>
+              Please add the pair of values of the Safecast device ID and the main component of the latent space to be
+              changed.
+            </p>
+            <p>
+              The device IDs can be found at{' '}
+              <a href="https://api.safecast.org/devices">https://api.safecast.org/devices</a>, but some examples of
+              devices that send real-time information every 5 minutes are: <b>40, 107, 300022, 300021.</b>
+            </p>
+            <p>
+              The values to be added as components of the latent space are values between 1 and 7 that correspond to
+              each of the components.
+            </p>
+            <p>
+              Select the date from which you want the sonification to start. This demo will take values every 10 seconds
+              from a 5-minute data range. If no date is selected, the latest data from the database will be sonified.
+            </p>
+          </section>
+          <div>
+            <input type="datetime-local" id="startDate" name="startDate" onChange={(event) => setDate(event.target.value)} />
+          </div>
           <div className={style.buttons}>
-            {devices.length !== 7 && (
-              <Button
-                title={'Add a pair'}
-                className={style.add}
-                onClick={addDevice}
-              />
-            )}
+            {devices.length !== 7 && <Button title={'Add a pair'} className={style.add} onClick={addDevice} />}
           </div>
           <div className={style.list}>
             {devices.length >= 1 && (
@@ -260,12 +267,11 @@ function App() {
                   <RiDeleteBin6Line />
                 </button>
               </div>
-              
             ))}
           </div>
           {devices.length >= 1 && (
-              <Button title="Start sonification" className={style.add} onClick={handleStartSonification} />
-            )}
+            <Button title="Start sonification" className={style.add} onClick={handleStartSonification} />
+          )}
           {error && <div className={style.error}>{error}</div>}
         </div>
       )}
