@@ -1,0 +1,1 @@
+Please note that in this demonstration, the model is not trained. However, the pre-trained model can be obtained at https://drive.google.com/file/d/1vfN9NGnRg0iESjJsVGBz9zIP2RTPT7PN/view?usp=share_link, along with the latent space to modify of the corpus: https://drive.google.com/file/d/1QlJOdYuKU64gtrC_xEjR9jz1CzP-Y7EE/view?usp=share_link.
