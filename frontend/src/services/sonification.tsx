@@ -4,7 +4,7 @@ import { Device } from '../App';
 const serverUrl = 'http://127.0.0.1:5000'; // Update with server URL
 
 
-export const startSonification = async (data: Device[])=> {
+export const startSonification = async (data: Device[], from: string | undefined = undefined, init: boolean | undefined = undefined)=> {
   try {
     const endPoint = '/predict';
 
@@ -20,7 +20,7 @@ export const startSonification = async (data: Device[])=> {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json; charset=utf-8',
       },
-      data: {mapping, format: 'base64'},
+      data: {mapping, format: 'base64', from, init},
     };
     return axios(config);
 
