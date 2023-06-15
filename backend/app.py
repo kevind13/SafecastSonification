@@ -6,6 +6,8 @@ import requests
 import base64
 import scipy.io as sio
 import io
+from datetime import datetime, timedelta
+
 
 from mid2matrix.matrix2mid import matrix2mid
 
@@ -23,6 +25,8 @@ model = None
 all_principal_components_statistics = []
 current_params = []
 
+
+GLOBAL_DATE = None
 
 def load_model():
     global model
@@ -111,6 +115,8 @@ def predict_latent(float_list):
 @cross_origin(supports_credentials=True)
 def predict():
     global current_params
+    global GLOBAL_DATE
+    
     if model is None:
         load_model()
     data = request.get_json()
@@ -118,6 +124,14 @@ def predict():
     mapping = data['mapping']
     start_date = data.get('from')
     format = data.get('format')
+    init = data.get('init')
+
+    if init and start_date:
+        GLOBAL_DATE = start_date
+    elif not init and not start_date and GLOBAL_DATE:
+        temp_date = datetime.fromisoformat(GLOBAL_DATE)
+        updated_date = temp_date + timedelta(minutes=5)
+        GLOBAL_DATE = updated_date.isoformat()
 
     if not isinstance(mapping, list) or any(not isinstance(item, dict) or 'component' not in item or 'device' not in item for item in mapping):
         return jsonify({'error': 'Invalid data format'})
@@ -150,6 +164,7 @@ def predict():
     '''
     
     temp_current_params = np.array(current_params)
+    devices_values = []
     for index, x in enumerate(components):
         z_latent = (current_params[0][x] - all_principal_components_statistics[x]['x_mean']) / all_principal_components_statistics[x]['x_std']
 
@@ -157,9 +172,9 @@ def predict():
         temp_column_std = DEVICES_CACHE[devices[index]]['std']
 
         url = f'https://api.safecast.org/en-US/measurements?device_id={devices[index]}&format=json'
-        if start_date is not None:
-            url = url + f'&since={start_date}'
-
+        if GLOBAL_DATE is not None:
+            url = url + f'&since={GLOBAL_DATE}'
+        print(url)
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
@@ -170,22 +185,16 @@ def predict():
         else:
             raise Exception("Failed to retrieve data")
 
-        print('component', x)
-        print('temp query avg', temp_query_avg)
-        print('current param', current_params[0][x])
-
         z_query = (temp_query_avg - temp_column_avg) / temp_column_std
+        devices_values.append(temp_query_avg)
 
-        print('z temp query avg', z_query)
-        print('z current param', (current_params[0][x]  - all_principal_components_statistics[x]['x_mean']) / all_principal_components_statistics[x]['x_std'])
-
-        # new_z_latent = z_latent + z_query/100
-        new_z_latent = z_query
+        # print('z temp query avg', z_query)
+        # print('z current param', (current_params[0][x]  - all_principal_components_statistics[x]['x_mean']) / all_principal_components_statistics[x]['x_std'])
         
-        temp_current_params[0][x] = new_z_latent * all_principal_components_statistics[x]['x_std'] + all_principal_components_statistics[x]['x_mean']
+        temp_current_params[0][x] = z_query * all_principal_components_statistics[x]['x_std'] + all_principal_components_statistics[x]['x_mean']
 
-    print(current_params)
-    print(temp_current_params)
+    # print(current_params)
+    # print(temp_current_params)
 
     latent_current = torch.from_numpy(np.array([temp_current_params])).float()
 
@@ -205,7 +214,12 @@ def predict():
         temp_midi_events.save(file=midi_buffer)
         midi_buffer.seek(0)
         encoded_midi = base64.b64encode(midi_buffer.read()).decode('utf-8')
-        return jsonify(encoded_midi)
+
+        response = {
+            'values': devices_values,
+            'midi_base64': encoded_midi
+        }
+        return jsonify(response)
 
     current_midi_events = [midi_msg_formatter(msg) for msg in temp_midi_events if midi_msg_formatter(msg) is not None]
     return jsonify(current_midi_events)
