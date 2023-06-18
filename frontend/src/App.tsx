@@ -7,6 +7,7 @@ import { PulseLoader } from 'react-spinners';
 import { startSonification } from './services/sonification';
 import { Midi } from '@tonejs/midi';
 import * as Tone from 'tone';
+import PlotMidiArray from './components/PlotMidiArray/PlotMidiArray';
 
 export type Device = {
   id: number;
@@ -27,7 +28,7 @@ function App() {
   const [loading, setLoading] = useState<boolean>(false);
   const [devices, setDevices] = useState<Device[]>([]);
   const [error, setError] = useState<string | undefined>();
-  const [notes, setNotes] = useState<Notes[] | undefined>();
+  const [values, setValues] = useState<number[][] | undefined>();
   const [date, setDate] = useState<string | undefined>();
 
   const [sonificationInterval, setSonificationInterval] = useState<NodeJS.Timeout | null>(null);
@@ -99,6 +100,7 @@ function App() {
     return bytes.buffer;
   };
 
+
   const handleStartSonification = async () => {
     try {
       setError('');
@@ -109,10 +111,14 @@ function App() {
         return;
       }
       setLoading(true);
-      const notes = await startSonification(devices);
-      if (!notes?.data) return;
+      const data = await startSonification(devices, date, true);
 
-      const arrayBuffer = convertDataToArrayBuffer(notes.data);
+      if (!data?.data) return;
+
+      const arrayBuffer = convertDataToArrayBuffer(data.data.midi_base64);
+      setValues(() => {
+        return (data.data.values as number[]).map((value) => [value]);
+      });
       const midi = new Midi(arrayBuffer);
       const now = Tone.now() + 0.5;
       midi.tracks.forEach((track) => {
@@ -133,14 +139,19 @@ function App() {
         });
       });
 
-      setNotes(notes?.data);
+      // setNotes(notes?.data);
 
       setSonificationInterval(
         setInterval(async () => {
-          const notes = await startSonification(devices);
-          if (!notes?.data) return;
+          const data = await startSonification(devices);
 
-          const arrayBuffer = convertDataToArrayBuffer(notes.data);
+          if (!data?.data) return;
+
+          const arrayBuffer = convertDataToArrayBuffer(data.data.midi_base64);
+          setValues((pV) => {
+            if (!pV) return [];
+            return pV.map((subArray, index) => [...subArray, data.data.values[index]]);
+          });
           const midi = new Midi(arrayBuffer);
           const now = Tone.now();
 
@@ -175,8 +186,8 @@ function App() {
             }
           }, 10);
 
-          setNotes(notes?.data);
-        }, 12000),
+          // setNotes(notes?.data);
+        }, 10000),
       );
     } catch (e) {
       setError('An error occurred. Please try again.');
@@ -186,6 +197,7 @@ function App() {
 
   const handleStopSonification = useCallback(() => {
     setLoading(false);
+    setValues(undefined);
     if (sonificationInterval) {
       clearInterval(sonificationInterval);
       setSonificationInterval(null);
@@ -204,12 +216,25 @@ function App() {
         <div />
       </div>
       {loading && (
-        <div className={style.playingSong}>
-          <div className={style.loader}>
-            <PulseLoader color="white" loading={loading} size={30} aria-label="Loading Spinner" data-testid="loader" />
+        <>
+          <div className={style.playingSong}>
+            <div className={style.loader}>
+              <PulseLoader
+                color="white"
+                loading={loading}
+                size={30}
+                aria-label="Loading Spinner"
+                data-testid="loader"
+              />
+            </div>
+            <Button title="Stop Sonification" className={style.add} onClick={handleStopSonification} />
           </div>
-          <Button title="Stop Sonification" className={style.add} onClick={handleStopSonification} />
-        </div>
+          {values !== undefined && (
+            <div className={style.plotMidi}>
+              <PlotMidiArray array={values} title="Devices data" xLabel="Time" yLabel="CPM" devices={devices} showLegend />
+            </div>
+          )}
+        </>
       )}
       {!loading && (
         <div className={style.content}>
@@ -234,7 +259,13 @@ function App() {
             </p>
           </section>
           <div>
-            <input type="datetime-local" id="startDate" name="startDate" onChange={(event) => setDate(event.target.value)} />
+            <input
+              type="datetime-local"
+              id="startDate"
+              name="startDate"
+              value={date}
+              onChange={(event) => setDate(event.target.value)}
+            />
           </div>
           <div className={style.buttons}>
             {devices.length !== 7 && <Button title={'Add a pair'} className={style.add} onClick={addDevice} />}

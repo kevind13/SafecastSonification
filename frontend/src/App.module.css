@@ -40,7 +40,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;;
+  padding: 20px;
+  padding-bottom: 50px;
+  background-color: rgb(35, 158, 158);
 }
 
 .content > section {
@@ -90,11 +92,11 @@
 }
 
 .playingSong{
-  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  margin-top: 20px;
 }
 
 .loader {
@@ -125,4 +127,11 @@ input[type="datetime-local"] {
   padding: 5px;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+.plotMidi {
+  margin: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
