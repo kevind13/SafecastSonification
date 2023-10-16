@@ -196,13 +196,8 @@ function App() {
           }
 
           midi.tracks.forEach((track) => {
-            const synth = new Tone.PolySynth(Tone.FMSynth, {
-              envelope: {
-                attack: 0.02,
-                decay: 0.1,
-                sustain: 0.3,
-                release: 1,
-              },
+            const synth = new Tone.PolySynth(SynthOptions[selectedSynth], {
+              envelope: envelope,
             }).toDestination();
 
             synths.push(synth);
