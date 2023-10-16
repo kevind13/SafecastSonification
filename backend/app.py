@@ -207,7 +207,7 @@ def predict():
     current_notes = np.argmax(X_recon.reshape((-1, X_recon.shape[-1])), axis=-1).reshape((X_recon.shape[1],X_recon.shape[2]))
 
     # try:
-    temp_midi_events = matrix2mid(current_notes.astype(int))
+    temp_midi_events = matrix2mid(current_notes.astype(int), tempo=750000)
 
     if format == 'base64':
         midi_buffer = io.BytesIO()

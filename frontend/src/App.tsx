@@ -22,7 +22,32 @@ export type Notes = {
   velocity: number;
 };
 
-let synths: Tone.PolySynth<Tone.Synth<Tone.SynthOptions>>[] = [];
+const SynthOptions: Record<string, any> = {
+  'Tone.FMSynth': Tone.FMSynth,
+  'Tone.Synth': Tone.Synth,
+  'Tone.AMSynth': Tone.AMSynth,
+  'Tone.MonoSynth': Tone.MonoSynth,
+};
+// const synthOptions: Tone.SynthOptions = {
+//   envelope: {
+//     attack: 0.05,
+//     attackCurve: 'exponential',
+//     decay: 0.2,
+//     decayCurve: 'exponential',
+//     release: 1.5,
+//     releaseCurve: 'exponential',
+//     sustain: 0.2,
+//   },
+//   oscillator: {
+//     phase: 0,
+//     type: 'amtriangle',
+//     harmonicity: 0.5,
+//     modulationType: 'sine',
+//   },
+// };
+
+// let synths: Tone.PolySynth<Tone.Synth<Tone.SynthOptions>>[] = [];
+let synths: any[] = [];
 
 function App() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -31,7 +56,25 @@ function App() {
   const [values, setValues] = useState<number[][] | undefined>();
   const [date, setDate] = useState<string | undefined>();
 
+  const [envelope, setEnvelope] = useState({
+    attack: 0.02,
+    decay: 0.1,
+    sustain: 0.3,
+    release: 1,
+  });
+
+  const [selectedSynth, setSelectedSynth] = useState<string>('Tone.Synth');
+
   const [sonificationInterval, setSonificationInterval] = useState<NodeJS.Timeout | null>(null);
+
+  const handleSliderChange = (e: any) => {
+    const { name, value } = e.target;
+    setEnvelope({ ...envelope, [name]: parseFloat(value) });
+  };
+
+  const updateSelectedSynth = (e: any) => {
+    setSelectedSynth(e.target.value);
+  };
 
   const addDevice = () => {
     setError('');
@@ -100,7 +143,6 @@ function App() {
     return bytes.buffer;
   };
 
-
   const handleStartSonification = async () => {
     try {
       setError('');
@@ -122,24 +164,16 @@ function App() {
       const midi = new Midi(arrayBuffer);
       const now = Tone.now() + 0.5;
       midi.tracks.forEach((track) => {
-        const synth = new Tone.PolySynth(Tone.Synth, {
-          envelope: {
-            attack: 0.02,
-            decay: 0.1,
-            sustain: 0.3,
-            release: 1,
-          },
+        const synth = new Tone.PolySynth(SynthOptions[selectedSynth], {
+          envelope: envelope,
         }).toDestination();
 
         synths.push(synth);
 
-        //schedule all of the events
         track.notes.forEach((note) => {
           synth.triggerAttackRelease(note.name, note.duration, note.time + now, note.velocity);
         });
       });
-
-      // setNotes(notes?.data);
 
       setSonificationInterval(
         setInterval(async () => {
@@ -162,7 +196,7 @@ function App() {
           }
 
           midi.tracks.forEach((track) => {
-            const synth = new Tone.PolySynth(Tone.Synth, {
+            const synth = new Tone.PolySynth(Tone.FMSynth, {
               envelope: {
                 attack: 0.02,
                 decay: 0.1,
@@ -187,7 +221,7 @@ function App() {
           }, 10);
 
           // setNotes(notes?.data);
-        }, 10000),
+        }, 22000),
       );
     } catch (e) {
       setError('An error occurred. Please try again.');
@@ -231,7 +265,14 @@ function App() {
           </div>
           {values !== undefined && (
             <div className={style.plotMidi}>
-              <PlotMidiArray array={values} title="Devices data" xLabel="Time" yLabel="CPM" devices={devices} showLegend />
+              <PlotMidiArray
+                array={values}
+                title="Devices data"
+                xLabel="Time"
+                yLabel="CPM"
+                devices={devices}
+                showLegend
+              />
             </div>
           )}
         </>
@@ -258,7 +299,8 @@ function App() {
               from a 5-minute data range. If no date is selected, the latest data from the database will be sonified.
             </p>
           </section>
-          <div>
+          <div className={style.dateContainer}>
+            <label className={style.label}>Selecciona la fecha:</label>
             <input
               type="datetime-local"
               id="startDate"
@@ -266,6 +308,69 @@ function App() {
               value={date}
               onChange={(event) => setDate(event.target.value)}
             />
+          </div>
+          <div className={style.select_container}>
+            <label className={style.label}>Selecciona un sintetizador:</label>
+            <select className={style.custom_select} value={selectedSynth} onChange={updateSelectedSynth}>
+              <option value="Tone.Synth">Synth</option>
+              <option value="Tone.FMSynth">FMSynth</option>
+              <option value="Tone.AMSynth">AMSynth</option>
+              <option value="Tone.MonoSynth">MonoSynth</option>
+            </select>
+            {/* <div className={style.select_arrow}>&#9660;</div> */}
+          </div>
+          <div className={style.envelope_sliders}>
+            <div className={style.slider_container}>
+              <label className={style.slider_label}>Attack: {envelope.attack}</label>
+              <input
+                type="range"
+                min="0"
+                max="5"
+                step="0.005"
+                name="attack"
+                value={envelope.attack}
+                onChange={handleSliderChange}
+              />
+            </div>
+
+            <div className={style.slider_container}>
+              <label className={style.slider_label}>Decay: {envelope.decay}</label>
+              <input
+                type="range"
+                min="0"
+                max="5"
+                step="0.005"
+                name="decay"
+                value={envelope.decay}
+                onChange={handleSliderChange}
+              />
+            </div>
+
+            <div className={style.slider_container}>
+              <label className={style.slider_label}>Sustain: {envelope.sustain}</label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.005"
+                name="sustain"
+                value={envelope.sustain}
+                onChange={handleSliderChange}
+              />
+            </div>
+
+            <div className={style.slider_container}>
+              <label className={style.slider_label}>Release: {envelope.release}</label>
+              <input
+                type="range"
+                min="0"
+                max="5"
+                step="0.01"
+                name="release"
+                value={envelope.release}
+                onChange={handleSliderChange}
+              />
+            </div>
           </div>
           <div className={style.buttons}>
             {devices.length !== 7 && <Button title={'Add a pair'} className={style.add} onClick={addDevice} />}

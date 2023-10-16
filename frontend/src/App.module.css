@@ -135,3 +135,75 @@ input[type="datetime-local"] {
   align-items: center;
   justify-content: center;
 }
+
+.envelope_sliders {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.slider_container {
+  width: 150px;
+  text-align: center;
+  padding: 10px;
+  color: white;
+}
+
+.slider_label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+
+
+/* Agrega estas reglas CSS en tu archivo de estilos (por ejemplo, App.css) */
+.select_container {
+  position: relative;
+  width: 200px; /* Ajusta el ancho según tus necesidades */
+  margin: 10px;
+}
+
+.select_container select {
+  /* appearance: none; */
+  /* -webkit-appearance: none; */
+  /* -moz-appearance: none; */
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #f5f5f5;
+  color: #333;
+  cursor: pointer;
+  outline: none;
+}
+
+.select_container select:hover {
+  background: #e0e0e0;
+}
+
+.select_container select:active, .select-container select:focus {
+  background: #ffffff;
+  border-color: #007BFF;
+}
+
+.select_arrow {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.dateContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  color:white;
+}
